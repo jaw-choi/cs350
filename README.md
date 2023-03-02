@@ -1,2 +1,1 @@
-# cs350
-Graphic Project
+# cs300_project
