@@ -157,7 +157,7 @@ struct Mesh
     std::vector<unsigned int> indices;
     std::vector<Texture>      textures;
     GLuint VAO;
-
+    int color = 0;
 
     // constructor
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
@@ -318,10 +318,9 @@ struct Mesh
     void setup_mesh();
     void compute_matrix(float delta_time);
     void Draw(Shader& shader);
-    void draw(glm::mat4 view, glm::mat4 projection, glm::vec3 light_pos, glm::vec3 view_pos,
-        std::vector<DirLight> dl, int numlamp, Global global, Material mater,
-        std::vector<GLuint> cubemapTexture,bool reflect,bool refract , int indexFresnel,
-        std::vector<float> refractiveIndex, std::vector<float> fresnelC, float FresnelPower );
+    void DrawLineBVH(Shader& shader);
+    void DrawLine(Shader& shader);
+    void drawSphere(Shader& shader);
     void drawLamp(glm::mat4 view, glm::mat4 projection, int numberLamp, std::vector<DirLight> dl, std::vector<lampSet> lampSetting);
     void drawLampForFrame(int numberLamp, std::vector<DirLight> dl);
     void drawLight(glm::mat4 view, glm::mat4 projection, glm::vec3 light_pos, glm::vec3 view_pos, std::vector<DirLight> dl,int numlamp, Global global, Material mater,int typeMapping, int shaderType, GLuint A, float B, GLuint C);
@@ -372,8 +371,10 @@ void ReadOBJ(const char* path, Mesh& mesh, MinMax& m, LengthMinMax& lm);
 void ReverseReadOBJ(const char* path, Mesh& mesh, MinMax& m, LengthMinMax& lm);
 Mesh CalculateMesh(Mesh& mesh, MinMax& m, LengthMinMax& lm);
 Mesh CreatePlane(int stacks, int slices);
-Mesh CreateCube(int stacks, int slices);
-Mesh CreateSphere(int stacks, int slices);
+Mesh CreateCube(int stacks, int slices, glm::vec3 center, MinMax m);
+Mesh CreateCube(glm::vec3 center, MinMax m, int color);
+Mesh CreateSphere(int stacks, int slices, glm::vec3 center, float radius);
+Mesh CreateSphere(int stacks, int slices, glm::vec3 center, float radius, int color);
 Mesh CreateTorus(int stacks, int slices, float startAngle, float endAngle);
 Mesh CreateCylinder(int stacks, int slices);
 Mesh CreateCone(int stacks, int slices);

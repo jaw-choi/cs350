@@ -32,7 +32,7 @@ uniform vec3 UserEmissive;
 void main()
 {    
     // store the fragment position vector in the first gbuffer texture
-    gPosition = FragPos;
+    gPosition = UserEmissive;
     // also store the per-fragment normals into the gbuffer
     gNormal = normalize(Normal);
     // and the diffuse per-fragment color
@@ -40,7 +40,7 @@ void main()
     // store specular intensity in gAlbedoSpec's alpha component
     gSpecular.rgb = texture(texture_specular, TexCoords).rgb;
     gAmbient = UserAmbient;
-    gEmissive = UserEmissive;
+    gEmissive = vec3(0.08,0.01,0.03);
 }
 /*
 TODO: change to UVs and depthValue

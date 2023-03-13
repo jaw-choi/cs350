@@ -24,6 +24,7 @@ End Header --------------------------------------------------------*/
 
 Mesh CreatePlane(int stacks, int slices)
 {
+    
     Mesh mesh;
     mesh.stack_slice[0] = stacks;
     mesh.stack_slice[1] = slices;
@@ -49,8 +50,43 @@ Mesh CreatePlane(int stacks, int slices)
 
     return mesh;
 }
+Mesh CreateCube(glm::vec3 center, MinMax m,int color)
+{
+    Mesh mesh;
+    std::vector<Vertex> vertices;
+    mesh.color = color;
+    
+    vertices.resize(17);
+    vertices[0].pos = { m.min.x ,m.min.y ,m.min.z };
+    vertices[1].pos = { m.min.x ,m.min.y ,m.max.z };
+    vertices[2].pos = { m.min.x ,m.max.y ,m.max.z };
+    vertices[3].pos = { m.min.x ,m.max.y ,m.min.z };
+    vertices[4].pos = { m.min.x ,m.min.y ,m.min.z };
 
-Mesh CreateCube(int stacks, int slices)
+    vertices[5].pos = { m.max.x ,m.min.y ,m.min.z };
+    vertices[6].pos = { m.max.x ,m.max.y ,m.min.z };
+    vertices[7].pos = { m.min.x ,m.max.y ,m.min.z };
+    vertices[8].pos = { m.min.x ,m.max.y ,m.max.z };
+    vertices[9].pos = { m.max.x ,m.max.y ,m.max.z };
+
+    vertices[10].pos = { m.max.x ,m.max.y ,m.min.z };
+    vertices[11].pos = { m.max.x ,m.min.y ,m.min.z };
+    vertices[12].pos = { m.max.x ,m.min.y ,m.max.z };
+    vertices[13].pos = { m.max.x ,m.max.y ,m.max.z };
+
+    vertices[14].pos = { m.max.x ,m.min.y ,m.max.z };
+    vertices[15].pos = { m.min.x ,m.min.y ,m.max.z };
+    vertices[16].pos = { m.min.x ,m.min.y ,m.min.z };
+    for (unsigned int i = 0; i < 17; i++)
+    {
+        mesh.indexBuffer.push_back(i);
+        mesh.vertexBuffer.push_back(vertices[i]);
+        ++mesh.numIndices;
+        ++mesh.numVertices;
+    }
+    return mesh;
+}
+Mesh CreateCube(int stacks, int slices, glm::vec3 center, MinMax m)
 {
     Mesh planeMesh = CreatePlane(stacks, slices);
     Mesh mesh;
@@ -58,12 +94,12 @@ Mesh CreateCube(int stacks, int slices)
     mesh.stack_slice[1] = slices;
     Vec3 const translateArray[] =
     {
-        Vec3(+0.0f, +0.0f, +0.5f), // Z+
-        Vec3(+0.0f, +0.0f, -0.5f), // Z-
-        Vec3(+0.5f, +0.0f, +0.0f), // X+
-        Vec3(-0.5f, +0.0f, +0.0f), // X-
-        Vec3(+0.0f, +0.5f, +0.0f), // Y+
-        Vec3(+0.0f, -0.5f, +0.0f), // Y-
+        center + m.max.z, // Z+
+        center + m.min.z, // Z-
+        center + m.max.x, // X+
+        center + m.min.x, // X-
+        center + m.max.y, // Y+
+        center + m.min.y, // Y-
     };
 
     Vec2 const rotateArray[] =
@@ -102,7 +138,7 @@ Mesh CreateCube(int stacks, int slices)
     return mesh;
 }
 
-Mesh CreateSphere(int stacks, int slices)
+Mesh CreateSphere(int stacks, int slices,glm::vec3 center,float radius)
 {
     Mesh mesh;
     mesh.stack_slice[0] = stacks;
@@ -120,9 +156,47 @@ Mesh CreateSphere(int stacks, int slices)
             v.uv.x = col;
             v.uv.y = row * (-1.0f);
 
-            v.pos.x = 0.5f * sin(alpha) * cos(beta);
-            v.pos.y = 0.5f * sin(beta);
-            v.pos.z = 0.5f * cos(alpha) * cos(beta);
+            v.pos.x = radius * sin(alpha) * cos(beta) + center.x;
+            v.pos.y = radius * sin(beta) + center.y;
+            v.pos.z = radius * cos(alpha) * cos(beta) + center.z;
+
+            v.nrm.x = v.pos.x;
+            v.nrm.y = v.pos.y;
+            v.nrm.z = v.pos.z;
+
+            v.nrm /= 0.5;
+
+            addVertex(mesh, v);
+        }
+    }
+
+    BuildIndexBuffer(stacks, slices, mesh);
+
+    return mesh;
+}
+
+Mesh CreateSphere(int stacks, int slices, glm::vec3 center, float radius, int color)
+{
+    Mesh mesh;
+    mesh.color = color;
+    mesh.stack_slice[0] = stacks;
+    mesh.stack_slice[1] = slices;
+    for (int stack = 0; stack <= stacks; ++stack)
+    {
+        float row = (float)stack / stacks;
+        float beta = PI * (row - 0.5f);
+
+        for (int slice = 0; slice <= slices; ++slice)
+        {
+            float col = (float)slice / slices;
+            float alpha = col * PI * 2.0f;
+            Vertex v;
+            v.uv.x = col;
+            v.uv.y = row * (-1.0f);
+
+            v.pos.x = radius * sin(alpha) * cos(beta) + center.x;
+            v.pos.y = radius * sin(beta) + center.y;
+            v.pos.z = radius * cos(alpha) * cos(beta) + center.z;
 
             v.nrm.x = v.pos.x;
             v.nrm.y = v.pos.y;
@@ -871,96 +945,72 @@ void Mesh::Draw(Shader& shader)
     glActiveTexture(GL_TEXTURE0);
 }
 
-
-void Mesh::draw(glm::mat4 view, glm::mat4 projection, glm::vec3 light_pos, glm::vec3 view_pos, std::vector<DirLight> dl, int numlamp,
-    Global global, Material mater, std::vector<GLuint> cubemapTexture, bool reflect, bool refract, int indexFresnel,
-    std::vector<float> refractiveIndex, std::vector<float> fresnelC, float FresnelPower)
+void Mesh::DrawLineBVH(Shader& shader)
 {
-    glUseProgram(ProgramID);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    
-    glDepthMask(GL_TRUE);
-    glm::mat4 model = {
-    1,0,0,0,
-    0,1,0,0,
-    0,0,1,0,
-    0,0,0,1
-    };
-    
-    model = glm::translate(model, position);
-    model = glm::rotate(model, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
-    model = glm::scale(model, scale);
-
-    glBindBuffer(GL_UNIFORM_BUFFER, UBO);
-
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
-    glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
-    glBufferSubData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(model));
-
-    glBindBufferBase(GL_UNIFORM_BUFFER, MatricesLOC, UBO);
+    // bind appropriate textures
+    unsigned int diffuseNr = 1;
+    unsigned int specularNr = 1;
 
 
+
+    // draw mesh
     glBindVertexArray(VAO);
-
-    glUniform4fv(colorLoc, 1, ValuePtr(glm::vec3{ 1.f,1.f,1.f }));//
-
-
-    glUniform1i(glGetUniformLocation(ProgramID, "NUMBER_OF_POINT_LIGHTS"), numlamp);
-    glUniform1f(glGetUniformLocation(ProgramID, "Reflection_bool"), reflect);
-    glUniform1f(glGetUniformLocation(ProgramID, "Refraction_bool"), refract);
-    glUniform3f(glGetUniformLocation(ProgramID, "viewPos"), view_pos.x, view_pos.y, view_pos.z);
-
-
-    glUniform1f(glGetUniformLocation(ProgramID, "refractiveIndex"), refractiveIndex[indexFresnel]);
-    glUniform1f(glGetUniformLocation(ProgramID, "fresnelC"), fresnelC[indexFresnel]);
-    glUniform1f(glGetUniformLocation(ProgramID, "FresnelPower"), FresnelPower);
-    
-    glUniform3f(glGetUniformLocation(ProgramID, "attenuation"), global.attenuation.x, global.attenuation.y, global.attenuation.z);
-    glUniform3f(glGetUniformLocation(ProgramID, "fogColor"), global.fogColor.x, global.fogColor.y, global.fogColor.z);
-    glUniform3f(glGetUniformLocation(ProgramID, "globalAmbient"), global.ambient.x, global.ambient.y, global.ambient.z);
-    glUniform1f(glGetUniformLocation(ProgramID, "fogMin"), global.fogMin);
-    glUniform1f(glGetUniformLocation(ProgramID, "fogMax"), global.fogMax);
-
-    //glUniform3f(glGetUniformLocation(renderProg.GetHandle(), "material.diffuse"), mater.ambient.x, mater.ambient.y, mater.ambient.z);
-    //glUniform3f(glGetUniformLocation(renderProg.GetHandle(), "material.specular"), mater.specular.x, mater.specular.y, mater.specular.z);
-    glUniform1f(glGetUniformLocation(ProgramID, "material.shininess"), 32.f);
-    //glUniform3f(glGetUniformLocation(renderProg.GetHandle(), "material.emissive"), mater.ambient.x, mater.ambient.y, mater.ambient.z);
-
-    glUniform3f(glGetUniformLocation(ProgramID, "material.diffuse"), mater.diffuse.x, mater.diffuse.y, mater.diffuse.z);
-    glUniform3f(glGetUniformLocation(ProgramID, "material.specular"), mater.specular.x, mater.specular.y, mater.specular.z);
-    glUniform3f(glGetUniformLocation(ProgramID, "material.ambient"), mater.ambient.x, mater.ambient.y, mater.ambient.z);
-    glUniform3f(glGetUniformLocation(ProgramID, "material.emissive"), mater.emissive.x, mater.emissive.y, mater.emissive.z);
-
-    //TODO
-   GLint a = glGetUniformLocation(ProgramID, "material.right");
-   glUniform1i(a, 0);
-
-   glActiveTexture(GL_TEXTURE0);
-   glBindTexture(GL_TEXTURE_2D, cubemapTexture[0]);
-   glUniform1i(glGetUniformLocation(ProgramID, "material.left"), 1);
-   glActiveTexture(GL_TEXTURE1);
-   glBindTexture(GL_TEXTURE_2D, cubemapTexture[1]);
-   glUniform1i(glGetUniformLocation(ProgramID, "material.top"), 2);
-   glActiveTexture(GL_TEXTURE2);
-   glBindTexture(GL_TEXTURE_2D, cubemapTexture[2]);
-   glUniform1i(glGetUniformLocation(ProgramID, "material.bottom"), 3);
-   glActiveTexture(GL_TEXTURE3);
-   glBindTexture(GL_TEXTURE_2D, cubemapTexture[3]);
-   glUniform1i(glGetUniformLocation(ProgramID, "material.front"), 4);
-   glActiveTexture(GL_TEXTURE4);
-   glBindTexture(GL_TEXTURE_2D, cubemapTexture[4]);
-   glUniform1i(glGetUniformLocation(ProgramID, "material.back"), 5);
-   glActiveTexture(GL_TEXTURE5);
-   glBindTexture(GL_TEXTURE_2D, cubemapTexture[5]);
-
-
-
-    glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, nullptr);
-
+    glDrawElements(GL_LINE_LOOP, numIndices, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+
+    // always good practice to set everything back to defaults once configured.
+    glActiveTexture(GL_TEXTURE0);
+}
+
+void Mesh::DrawLine(Shader& shader)
+{
+    // bind appropriate textures
+    unsigned int diffuseNr = 1;
+    unsigned int specularNr = 1;
+
+
+     
+    // draw mesh
+    glBindVertexArray(VAO);
+    glDrawElements(GL_LINE_LOOP, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+
+    // always good practice to set everything back to defaults once configured.
+    glActiveTexture(GL_TEXTURE0);
+}
+
+void Mesh::drawSphere(Shader& shader)
+{
+    // bind appropriate textures
+    unsigned int diffuseNr = 1;
+    unsigned int specularNr = 1;
+
+    for (unsigned int i = 0; i < textures.size(); i++)
+    {
+        glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
+        // retrieve texture number (the N in diffuse_textureN)
+        std::string number;
+        std::string name = textures[i].type;
+        if (name == "texture_diffuse")
+            number = std::to_string(diffuseNr++);
+        else if (name == "texture_specular")
+            number = std::to_string(specularNr++); // transfer unsigned int to string
+
+        // now set the sampler to the correct texture unit
+        GLint Loc = glGetUniformLocation(shader.ID, (name).c_str());
+        glUniform1i(Loc, i);
+        // and finally bind the texture
+        glBindTexture(GL_TEXTURE_2D, textures[i].id);
+    }
+
+    // draw mesh
+    glBindVertexArray(VAO);
+    glDrawElements(GL_LINE_LOOP, numIndices, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+
+    // always good practice to set everything back to defaults once configured.
+    glActiveTexture(GL_TEXTURE0);
+
 }
 
 void Mesh::drawLight(glm::mat4 view, glm::mat4 projection, glm::vec3 light_pos, glm::vec3 view_pos, std::vector<DirLight> dl, int numlamp, Global global, Material mater, int typeMapping, int shaderType, GLuint A, float B, GLuint C)

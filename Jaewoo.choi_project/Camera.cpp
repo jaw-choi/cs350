@@ -33,7 +33,7 @@ Camera::Camera(glm::vec3 eye, glm::vec3 _direction) :eye(eye), cameraDirection(_
 }
 void Camera::Update(float )
 {
-    float speed = 0.01f;
+    float speed = 300.f;
 
     if (glfwGetKey(GLHelper::ptr_window, GLFW_KEY_UP))
     {
@@ -61,11 +61,11 @@ void Camera::Update(float )
     }
     if (glfwGetKey(GLHelper::ptr_window, GLFW_KEY_E))
     {
-        yaw += speed *10.f;
+        yaw += 0.01 *30.f;
     }
     if (glfwGetKey(GLHelper::ptr_window, GLFW_KEY_Q))
     {
-        yaw -= speed *10.f;
+        yaw -= 0.01 *30.f;
     }
     cameraFront.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront.y = sin(glm::radians(pitch));
